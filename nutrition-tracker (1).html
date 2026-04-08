@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>תזונה יומית</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f12;
+  --surface: #1a1a22;
+  --surface2: #22222e;
+  --border: #2e2e3e;
+  --text: #f0ede8;
+  --muted: #7a7890;
+  --accent: #a78bfa;
+  --accent2: #6ee7b7;
+  --danger: #f87171;
+  --warn: #fbbf24;
+  --cal-color: #a78bfa;
+  --pro-color: #6ee7b7;
+  --carb-color: #fbbf24;
+  --fat-color: #f87171;
+  --r: 16px;
+  --r-sm: 10px;
+  --font: 'Heebo', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
+
+/* ── APP SHELL ── */
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 430px; margin: 0 auto; position: relative; }
+
+/* ── STATUS BAR SPACER ── */
+.status-bar { height: env(safe-area-inset-top, 44px); background: var(--bg); flex-shrink: 0; }
+
+/* ── HEADER ── */
+.header { padding: 12px 20px 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; }
+.header-title { font-size: 22px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+.header-date { font-size: 12px; color: var(--muted); font-weight: 400; }
+.header-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #7c3aed); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #fff; flex-shrink: 0; cursor: pointer; }
+
+/* ── SCROLL AREA ── */
+.scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px 120px; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+.scroll-area::-webkit-scrollbar { display: none; }
+
+/* ── CALORIE RING ── */
+.ring-section { padding: 8px 0 20px; display: flex; align-items: center; gap: 20px; }
+.ring-wrap { position: relative; flex-shrink: 0; }
+.ring-svg { transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--surface2); stroke-width: 10; }
+.ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1); }
+.ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-val { font-size: 24px; font-weight: 900; color: var(--text); line-height: 1; }
+.ring-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.ring-stats { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.ring-stat { display: flex; flex-direction: column; gap: 3px; }
+.ring-stat-row { display: flex; justify-content: space-between; align-items: center; }
+.ring-stat-lbl { font-size: 11px; color: var(--muted); }
+.ring-stat-val { font-size: 11px; font-weight: 700; }
+.mini-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
+/* ── STAT CARDS ROW ── */
+.stat-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.stat-card.cal::before { background: var(--cal-color); }
+.stat-card.pro::before { background: var(--pro-color); }
+.stat-card.carb::before { background: var(--carb-color); }
+.stat-card.fat::before { background: var(--fat-color); }
+.stat-card-val { font-size: 26px; font-weight: 900; margin-bottom: 2px; }
+.stat-card-lbl { font-size: 11px; color: var(--muted); }
+.stat-card-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+.stat-card.cal .stat-card-val { color: var(--cal-color); }
+.stat-card.pro .stat-card-val { color: var(--pro-color); }
+.stat-card.carb .stat-card-val { color: var(--carb-color); }
+.stat-card.fat .stat-card-val { color: var(--fat-color); }
+
+/* ── SECTION ── */
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 12px; overflow: hidden; }
+.section-header { padding: 14px 16px 10px; display: flex; align-items: center; justify-content: space-between; }
+.section-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.section-add { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; font-weight: 300; }
+.section-body { padding: 0 16px 14px; }
+
+/* ── LOG ITEMS ── */
+.meal-group-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 6px; }
+.log-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.log-item:last-child { border-bottom: none; }
+.log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.log-info { flex: 1; min-width: 0; }
+.log-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-macros { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.log-cal { font-size: 13px; font-weight: 700; color: var(--text); min-width: 50px; text-align: left; }
+.log-del { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 2px; line-height: 1; }
+.log-del:active { color: var(--danger); }
+.act-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.act-item:last-child { border-bottom: none; }
+.act-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.act-info { flex: 1; }
+.act-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.act-min { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.act-neg { font-size: 13px; font-weight: 700; color: var(--accent2); min-width: 60px; text-align: left; }
+.empty-state { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--surface); border-top: 1px solid var(--border); padding: 10px 20px calc(env(safe-area-inset-bottom, 16px) + 6px); display: flex; justify-content: space-around; z-index: 100; }
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px 16px; border-radius: var(--r-sm); transition: all .15s; background: none; border: none; }
+.nav-item.active .nav-icon { color: var(--accent); }
+.nav-item.active .nav-lbl { color: var(--accent); }
+.nav-icon { font-size: 20px; color: var(--muted); transition: color .15s; }
+.nav-lbl { font-size: 10px; color: var(--muted); font-weight: 500; font-family: var(--font); transition: color .15s; }
+
+/* ── BOTTOM SHEET ── */
+.sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; opacity: 0; pointer-events: none; transition: opacity .25s; backdrop-filter: blur(4px); }
+.sheet-overlay.open { opacity: 1; pointer-events: all; }
+.sheet { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 430px; background: var(--surface); border-radius: 24px 24px 0 0; z-index: 201; transition: transform .3s cubic-bezier(.4,0,.2,1); max-height: 92dvh; display: flex; flex-direction: column; }
+.sheet.open { transform: translateX(-50%) translateY(0); }
+.sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 4px; flex-shrink: 0; }
+.sheet-header { padding: 8px 20px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.sheet-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.sheet-close { width: 30px; height: 30px; border-radius: 50%; background: var(--surface2); border: none; color: var(--muted); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.sheet-body { overflow-y: auto; padding: 0 20px 20px; flex: 1; }
+.sheet-body::-webkit-scrollbar { display: none; }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; display: block; }
+.form-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px 14px; font-size: 15px; color: var(--text); font-family: var(--font); outline: none; -webkit-appearance: none; }
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: var(--muted); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+select.form-input { cursor: pointer; }
+.suggest-list { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-sm); margin-top: 4px; overflow: hidden; display: none; }
+.suggest-item { padding: 11px 14px; font-size: 14px; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border); }
+.suggest-item:last-child { border-bottom: none; }
+.suggest-item:active { background: var(--border); }
+.suggest-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.quick-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.pill { padding: 6px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--font); transition: all .15s; white-space: nowrap; }
+.pill:active { border-color: var(--accent); color: var(--accent); }
+.btn-submit { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: var(--r); font-size: 16px; font-weight: 700; color: #fff; cursor: pointer; font-family: var(--font); letter-spacing: -.2px; margin-top: 4px; transition: opacity .15s; }
+.btn-submit:active { opacity: .85; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+/* ── PROFILE TAB ── */
+.profile-hero { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 12px; text-align: center; }
+.profile-initials { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #7c3aed); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: #fff; margin: 0 auto 12px; }
+.profile-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.profile-sub { font-size: 13px; color: var(--muted); }
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px; text-align: center; }
+.kpi-val { font-size: 18px; font-weight: 900; color: var(--accent); }
+.kpi-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.settings-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 12px; }
+.settings-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.settings-item:last-child { border-bottom: none; }
+.settings-lbl { font-size: 14px; color: var(--text); }
+.settings-val { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+/* ── GOALS TAB ── */
+.goal-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 12px; }
+.goal-title { font-size: 13px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+.goal-item { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.goal-item:last-child { margin-bottom: 0; }
+.goal-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.goal-lbl { font-size: 13px; color: var(--text); flex: 1; }
+.goal-pct { font-size: 12px; font-weight: 700; min-width: 36px; text-align: left; }
+.goal-bar-wrap { width: 80px; }
+.auto-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 4px 10px; border-radius: 20px; background: rgba(167,139,250,.15); color: var(--accent); border: 1px solid rgba(167,139,250,.3); margin-bottom: 12px; }
+
+/* ── TABS (content pages) ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── TRANSITIONS ── */
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+.section { animation: fadeUp .3s ease both; }
+
+/* ── CLARIFY PANEL ── */
+.clarify-panel { background: var(--surface2); border: 1px solid var(--accent); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 12px; display: none; }
+.clarify-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
+.clarify-option { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); margin-bottom: 6px; cursor: pointer; transition: all .15s; }
+.clarify-option:last-child { margin-bottom: 0; }
+.clarify-option:active { border-color: var(--accent); background: var(--surface2); }
+.clarify-option-name { flex: 1; font-size: 13px; color: var(--text); }
+.clarify-option-cal { font-size: 12px; color: var(--muted); }
+/* ── STATS ── */
+.stats-period { display:flex; gap:6px; margin-bottom:16px; }
+.period-btn { flex:1; padding:8px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--r-sm); font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; font-family:var(--font); text-align:center; transition:all .15s; }
+.period-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.chart-wrap { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px; margin-bottom:12px; }
+.chart-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:14px; }
+.bar-chart { display:flex; align-items:flex-end; gap:4px; height:100px; }
+.bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.bar-col-bar { width:100%; border-radius:4px 4px 0 0; min-height:2px; transition:height .4s; }
+.bar-col-lbl { font-size:9px; color:var(--muted); white-space:nowrap; }
+.bar-col-val { font-size:9px; color:var(--muted); }
+.streak-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+.streak-card { flex:1; min-width:80px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); padding:12px; text-align:center; }
+.streak-val { font-size:22px; font-weight:900; color:var(--accent); }
+.streak-lbl { font-size:10px; color:var(--muted); margin-top:2px; }
+.avg-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.avg-row:last-child { border-bottom:none; }
+.history-item { padding:12px 0; border-bottom:1px solid var(--border); }
+.history-item:last-child { border-bottom:none; }
+.history-date { font-size:11px; font-weight:700; color:var(--muted); margin-bottom:6px; }
+.history-bars { display:flex; gap:6px; align-items:center; }
+.history-bar-wrap { flex:1; }
+.history-bar-lbl { font-size:10px; color:var(--muted); margin-bottom:2px; }
+.history-bar-track { height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+.history-bar-fill { height:100%; border-radius:3px; }
+.history-cal { font-size:13px; font-weight:700; min-width:54px; text-align:left; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="status-bar"></div>
+
+  <div class="header">
+    <div>
+      <div class="header-title" id="header-title">יומן תזונה</div>
+      <div class="header-date" id="header-date"></div>
+    </div>
+    <div class="header-avatar" id="header-avatar" onclick="switchPage('profile')">?</div>
+  </div>
+
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- TODAY PAGE -->
+    <div class="page active" id="page-today">
+      <!-- Ring -->
+      <div class="ring-section">
+        <div class="ring-wrap">
+          <svg class="ring-svg" width="110" height="110" viewBox="0 0 110 110">
+            <circle class="ring-track" cx="55" cy="55" r="45"/>
+            <circle class="ring-fill" id="cal-ring" cx="55" cy="55" r="45" stroke="var(--cal-color)"
+              stroke-dasharray="283" stroke-dashoffset="283"/>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-val" id="ring-cal">0</div>
+            <div class="ring-lbl">קק"ל</div>
+          </div>
+        </div>
+        <div class="ring-stats">
+          <div class="ring-stat">
+            <div class="ring-stat-row">
+              <span class="ring-stat-lbl">חלבון</span>
+              <span class="ring-stat-val" style="color:var(--pro-color)" id="rs-pro">0g</span>
+            </div>
+            <div class="mini-bar"><div class="mini-bar-fill" id="bar-pro" style="background:var(--pro-color);width:0%"></div></div>
+          </div>
+          <div class="ring-stat">
+            <div class="ring-stat-row">
+              <span class="ring-stat-lbl">פחמימות</span>
+              <span class="ring-stat-val" style="color:var(--carb-color)" id="rs-carb">0g</span>
+            </div>
+            <div class="mini-bar"><div class="mini-bar-fill" id="bar-carb" style="background:var(--carb-color);width:0%"></div></div>
+          </div>
+          <div class="ring-stat">
+            <div class="ring-stat-row">
+              <span class="ring-stat-lbl">שומן</span>
+              <span class="ring-stat-val" style="color:var(--fat-color)" id="rs-fat">0g</span>
+            </div>
+            <div class="mini-bar"><div class="mini-bar-fill" id="bar-fat" style="background:var(--fat-color);width:0%"></div></div>
+          </div>
+          <div class="ring-stat">
+            <div class="ring-stat-row">
+              <span class="ring-stat-lbl">נותרו</span>
+              <span class="ring-stat-val" id="rs-rem" style="color:var(--accent2)">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Food log -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">🍽 מה אכלתי</span>
+          <button class="section-add" onclick="openSheet('food')">+</button>
+        </div>
+        <div class="section-body" id="food-log-body">
+          <div class="empty-state">לחץ + להוספת ארוחה</div>
+        </div>
+      </div>
+
+      <!-- Activity log -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">🏃 פעילות גופנית</span>
+          <button class="section-add" onclick="openSheet('activity')">+</button>
+        </div>
+        <div class="section-body" id="activity-log-body">
+          <div class="empty-state">לחץ + להוספת פעילות</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOALS PAGE -->
+    <div class="page" id="page-goals">
+      <div style="padding:4px 0 16px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">יעדים יומיים</div>
+        <div class="auto-badge" id="auto-badge" style="display:none">✦ מחושב אוטומטית לפי פרופיל</div>
+      </div>
+      <div class="goal-section">
+        <div class="goal-title">הגדרת יעדים</div>
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0"><label class="form-label">קלוריות</label><input class="form-input" id="g-cal" type="number" value="2000"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">חלבון (g)</label><input class="form-input" id="g-pro" type="number" value="120"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:14px">
+          <div class="form-group" style="margin:0"><label class="form-label">פחמימות (g)</label><input class="form-input" id="g-carb" type="number" value="250"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">שומן (g)</label><input class="form-input" id="g-fat" type="number" value="65"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-submit" style="flex:1;padding:13px" onclick="saveGoals()">שמור</button>
+          <button class="btn-submit btn-secondary" style="flex:1;padding:13px" id="btn-auto" onclick="autoGoals()" style="display:none">חשב אוטומטית</button>
+        </div>
+      </div>
+      <div class="goal-section">
+        <div class="goal-title">מצב נוכחי</div>
+        <div id="goal-progress-list"></div>
+      </div>
+    </div>
+
+    <!-- PROFILE PAGE -->
+    <div class="page" id="page-profile">
+      <div id="profile-hero-wrap" style="display:none">
+        <div class="profile-hero">
+          <div class="profile-initials" id="prof-initials">?</div>
+          <div class="profile-name" id="prof-name-display"></div>
+          <div class="profile-sub" id="prof-sub"></div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-val" id="kpi-bmi">—</div><div class="kpi-lbl">BMI</div></div>
+          <div class="kpi"><div class="kpi-val" id="kpi-bmr">—</div><div class="kpi-lbl">BMR</div></div>
+          <div class="kpi"><div class="kpi-val" id="kpi-tdee">—</div><div class="kpi-lbl">TDEE</div></div>
+        </div>
+        <div class="settings-list" id="prof-settings-list"></div>
+      </div>
+      <div class="goal-section">
+        <div class="goal-title">פרטים אישיים</div>
+        <div class="form-group"><label class="form-label">שם</label><input class="form-input" id="p-name" placeholder="שמך"></div>
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0"><label class="form-label">גיל</label><input class="form-input" id="p-age" type="number" placeholder="30"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">מגדר</label>
+            <select class="form-input" id="p-gender"><option value="male">זכר</option><option value="female">נקבה</option></select>
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0"><label class="form-label">גובה (ס"מ)</label><input class="form-input" id="p-height" type="number" placeholder="170"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">משקל (ק"ג)</label><input class="form-input" id="p-weight" type="number" placeholder="70" step="0.1"></div>
+        </div>
+        <div class="form-group"><label class="form-label">רמת פעילות</label>
+          <select class="form-input" id="p-activity">
+            <option value="1.2">יושבני</option>
+            <option value="1.375">קלה (1-3 פעמים)</option>
+            <option value="1.55" selected>בינונית (3-5 פעמים)</option>
+            <option value="1.725">גבוהה (6-7 פעמים)</option>
+            <option value="1.9">אינטנסיבית</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">מטרה</label>
+          <select class="form-input" id="p-goal">
+            <option value="-500">ירידה במשקל (גירעון 500)</option>
+            <option value="-250">ירידה מתונה (גירעון 250)</option>
+            <option value="0" selected>שמירה על משקל</option>
+            <option value="250">עלייה מתונה (עודף 250)</option>
+            <option value="500">עלייה במסה (עודף 500)</option>
+          </select>
+        </div>
+        <button class="btn-submit" onclick="saveProfile()">שמור פרופיל וחשב יעדים</button>
+      </div>
+    </div>
+
+    <!-- STATS PAGE -->
+    <div class="page" id="page-stats">
+      <div id="stats-content"></div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="nav-today" onclick="switchPage('today')">
+      <span class="nav-icon">◈</span><span class="nav-lbl">יומן</span>
+    </button>
+    <button class="nav-item" id="nav-stats" onclick="switchPage('stats')">
+      <span class="nav-icon">◫</span><span class="nav-lbl">סטטיסטיקה</span>
+    </button>
+    <button class="nav-item" id="nav-goals" onclick="switchPage('goals')">
+      <span class="nav-icon">◎</span><span class="nav-lbl">יעדים</span>
+    </button>
+    <button class="nav-item" id="nav-profile" onclick="switchPage('profile')">
+      <span class="nav-icon">◉</span><span class="nav-lbl">פרופיל</span>
+    </button>
+  </div>
+</div>
+
+<!-- SHEET OVERLAY -->
+<div class="sheet-overlay" id="overlay" onclick="closeSheet()"></div>
+
+<!-- FOOD SHEET -->
+<div class="sheet" id="sheet-food">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">הוספת מזון</span>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="form-group">
+      <label class="form-label">שם המזון</label>
+      <input class="form-input" id="food-name" placeholder="חיפוש מזון..." oninput="suggestFood()" autocomplete="off">
+      <div class="suggest-list" id="food-suggest"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">כמות</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="form-input" id="food-qty" type="number" value="1" min="0.5" step="0.5" style="flex:1">
+          <span id="food-unit-lbl" data-u="גרם" data-s="1" data-abs="0"
+            style="font-size:12px;color:var(--muted);white-space:nowrap;min-width:36px">יחידות</span>
+        </div>
+      </div>
+      <div class="form-group" style="margin:0"><label class="form-label">ארוחה</label>
+        <select class="form-input" id="food-meal">
+          <option>בוקר</option><option>ביניים</option><option selected>צהריים</option><option>אחה"צ</option><option>ערב</option>
+        </select>
+      </div>
+    </div>
+    <div class="clarify-panel" id="clarify-panel">
+      <div class="clarify-title">איזו גרסה? 🤔</div>
+      <div id="clarify-options"></div>
+    </div>
+    <div class="form-row-3" style="margin-bottom:6px">
+      <div class="form-group" style="margin:0"><label class="form-label">קק"ל</label><input class="form-input" id="f-cal" type="number" placeholder="0"></div>
+      <div class="form-group" style="margin:0"><label class="form-label">חלבון</label><input class="form-input" id="f-pro" type="number" placeholder="0" step="0.1"></div>
+      <div class="form-group" style="margin:0"><label class="form-label">פחמימות</label><input class="form-input" id="f-carb" type="number" placeholder="0" step="0.1"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px"><label class="form-label">שומן (g)</label><input class="form-input" id="f-fat" type="number" placeholder="0" step="0.1"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">מהיר</div>
+    <div class="quick-pills" id="food-pills"></div>
+    <button class="btn-submit" onclick="addFood()">הוסף לרשימה</button>
+  </div>
+</div>
+
+<!-- ACTIVITY SHEET -->
+<div class="sheet" id="sheet-activity">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">הוספת פעילות</span>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="form-group">
+      <label class="form-label">סוג פעילות</label>
+      <input class="form-input" id="act-name" placeholder="הליכה, ריצה, שחייה..." oninput="suggestAct()" autocomplete="off">
+      <div class="suggest-list" id="act-suggest"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="form-group" style="margin:0"><label class="form-label">דקות</label><input class="form-input" id="act-min" type="number" value="30" oninput="calcActCal()"></div>
+      <div class="form-group" style="margin:0"><label class="form-label">עצימות</label>
+        <select class="form-input" id="act-intensity" onchange="calcActCal()">
+          <option value="0.8">קלה</option><option value="1" selected>בינונית</option><option value="1.25">גבוהה</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px"><label class="form-label">קלוריות נשרפות</label><input class="form-input" id="act-cal" type="number" placeholder="חישוב אוטומטי"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">מהיר</div>
+    <div class="quick-pills" id="act-pills"></div>
+    <button class="btn-submit" onclick="addActivity()">הוסף פעילות</button>
+  </div>
+</div>
+
+<script>
+const FOODS=[
+  // ביצים — לפי יחידה
+  {n:'ביצה קשה',       c:78, p:6,  carb:0.6,f:5,  e:'🥚',u:'ביצה',  s:50, qty:1},
+  {n:'חביתה (2 ביצים)',c:180,p:12, carb:1,  f:14, e:'🍳',u:'מנה',   s:1,  qty:1, abs:true},
+  {n:'ביצה מקושקשת (2)',c:200,p:13,carb:2,  f:15, e:'🥄',u:'מנה',   s:1,  qty:1, abs:true},
+  {n:'עין שמש',        c:90, p:6,  carb:0.4,f:7,  e:'🍳',u:'ביצה',  s:50, qty:1},
+  // עוף ובשר
+  {n:'חזה עוף',        c:165,p:31, carb:0,  f:3.6,e:'🍗',u:'גרם',   s:1,  qty:150},
+  {n:'שוק עוף',        c:215,p:26, carb:0,  f:12, e:'🍗',u:'שוק',   s:120,qty:1},
+  {n:'קציצת עוף',      c:120,p:14, carb:5,  f:5,  e:'🍗',u:'קציצה', s:70, qty:2},
+  // דגים
+  {n:'סלמון',          c:208,p:20, carb:0,  f:13, e:'🐠',u:'גרם',   s:1,  qty:150},
+  {n:'טונה בשימורים',  c:116,p:26, carb:0,  f:1,  e:'🐟',u:'פחית',  s:160,qty:1},
+  // לחם ודגנים
+  {n:'לחם מלא',        c:80, p:4,  carb:14, f:1,  e:'🍞',u:'פרוסה', s:30, qty:2},
+  {n:'פיתה',           c:170,p:6,  carb:34, f:1.5,e:'🫓',u:'פיתה',  s:65, qty:1},
+  {n:'שיבולת שועל',    c:389,p:17, carb:66, f:7,  e:'🌾',u:'גרם',   s:1,  qty:50},
+  {n:'אורז מבושל',     c:130,p:2.7,carb:28, f:0.3,e:'🍚',u:'גרם',   s:1,  qty:150},
+  {n:'פסטה מבושלת',    c:158,p:5.8,carb:31, f:0.9,e:'🍝',u:'גרם',   s:1,  qty:150},
+  {n:'קינואה מבושלת',  c:120,p:4.4,carb:21, f:1.9,e:'🌾',u:'גרם',   s:1,  qty:150},
+  // חלב וגבינות
+  {n:'גבינה לבנה 5%',  c:75, p:10, carb:3,  f:2.5,e:'🧀',u:'גרם',   s:1,  qty:200},
+  {n:'קוטג',           c:72, p:12, carb:2,  f:1.5,e:'🥛',u:'גרם',   s:1,  qty:200},
+  {n:'יוגורט',         c:61, p:3.5,carb:4.7,f:3.3,e:'🥛',u:'גרם',   s:1,  qty:150},
+  {n:'גבינה צהובה',    c:402,p:25, carb:1.3,f:33, e:'🧀',u:'פרוסה', s:20, qty:2},
+  {n:'חלב',            c:61, p:3.2,carb:4.8,f:3.3,e:'🥛',u:'מ"ל',   s:1,  qty:200},
+  // ירקות ופירות
+  {n:'בננה',           c:89, p:1.1,carb:23, f:0.3,e:'🍌',u:'בננה',  s:120,qty:1},
+  {n:'תפוח',           c:52, p:0.3,carb:14, f:0.2,e:'🍎',u:'תפוח',  s:150,qty:1},
+  {n:'אבוקדו',         c:160,p:2,  carb:9,  f:15, e:'🥑',u:'חצי',   s:75, qty:1},
+  {n:'עגבנייה',        c:18, p:0.9,carb:3.9,f:0.2,e:'🍅',u:'עגבנייה',s:120,qty:1},
+  {n:'מלפפון',         c:16, p:0.7,carb:3.6,f:0.1,e:'🥒',u:'מלפפון',s:150,qty:1},
+  {n:'בטטה',           c:86, p:1.6,carb:20, f:0.1,e:'🍠',u:'גרם',   s:1,  qty:150},
+  // קטניות וממרחים
+  {n:'חומוס',          c:166,p:9,  carb:27, f:3,  e:'🫙',u:'גרם',   s:1,  qty:100},
+  {n:'עדשים מבושלות',  c:116,p:9,  carb:20, f:0.4,e:'🫘',u:'גרם',   s:1,  qty:150},
+  // שומנים ואגוזים
+  {n:'שקדים',          c:579,p:21, carb:22, f:50, e:'🌰',u:'גרם',   s:1,  qty:30},
+  {n:'אגוזי מלך',      c:654,p:15, carb:14, f:65, e:'🌰',u:'גרם',   s:1,  qty:30},
+  {n:'שמן זית',        c:884,p:0,  carb:0,  f:100,e:'🫒',u:'כף',    s:14, qty:1},
+  // ממתקים
+  {n:'שוקולד מריר',    c:598,p:8,  carb:46, f:43, e:'🍫',u:'קוביות',s:20, qty:2},
+
+  // קציצות
+  {n:'קציצת בשר (בקר)',    c:200,p:15,carb:6, f:13,e:'🥩',u:'קציצה', s:80, qty:1, tags:['קציצה','קציצות']},
+  {n:'קציצת עוף',          c:130,p:14,carb:5, f:5, e:'🍗',u:'קציצה', s:70, qty:1, tags:['קציצה','קציצות']},
+  {n:'קציצת הודו',         c:115,p:15,carb:4, f:4, e:'🦃',u:'קציצה', s:70, qty:1, tags:['קציצה','קציצות']},
+  {n:'קציצת דג',           c:110,p:13,carb:6, f:4, e:'🐟',u:'קציצה', s:70, qty:1, tags:['קציצה','קציצות']},
+  {n:'קציצת ירקות / טבעוני',c:90,p:5, carb:10,f:4, e:'🌿',u:'קציצה', s:70, qty:1, tags:['קציצה','קציצות']},
+  // פירות יער
+  {n:'אוכמניות טריות',      c:57, p:0.7,carb:14,f:0.3,e:'🫐',u:'גרם',s:1,qty:100,tags:['אוכמניות','פירות יער']},
+  {n:'אוכמניות קפואות',     c:51, p:0.5,carb:12,f:0.2,e:'🫐',u:'גרם',s:1,qty:100,tags:['אוכמניות','פירות יער']},
+  {n:'תות שדה',             c:32, p:0.7,carb:7.7,f:0.3,e:'🍓',u:'גרם',s:1,qty:100,tags:['פירות יער']},
+  {n:'פטל',                 c:52, p:1.2,carb:12,f:0.7,e:'🫐',u:'גרם',s:1,qty:100,tags:['פירות יער']},
+  // שייקים ומוצרים מוכנים
+  {n:'שייק חלבון (אבקה)',   c:120,p:25,carb:3, f:1.5,e:'💪',u:'מנה',s:1,qty:1,abs:true,tags:['שייק','חלבון']},
+  {n:'שייק פירות בחלב',     c:250,p:8, carb:38,f:5,  e:'🥤',u:'כוס', s:1,qty:1,abs:true,tags:['שייק']},
+  // ארוחות מוכנות
+  {n:'פלאפל (כדור)',        c:57, p:2.5,carb:5,f:3.3,e:'🧆',u:'כדור',s:17,qty:4,tags:['פלאפל']},
+  {n:'שקשוקה (מנה)',        c:220,p:14,carb:12,f:13, e:'🍳',u:'מנה', s:1, qty:1,abs:true,tags:['שקשוקה','ביצים']},
+  {n:'סחלב',                c:180,p:4, carb:35,f:3,   e:'🍶',u:'כוס', s:1, qty:1,abs:true,tags:['שתייה']},
+  // לחמניות ומאפים
+  {n:'לחמנייה',             c:220,p:7, carb:40,f:3,   e:'🫓',u:'לחמנייה',s:80,qty:1,tags:['לחם','מאפה']},
+  {n:'קרואסון',             c:406,p:8, carb:45,f:21,  e:'🥐',u:'קרואסון',s:100,qty:1,tags:['מאפה']},
+  // שתייה
+  {n:'קפה שחור',            c:2,  p:0.3,carb:0,f:0,   e:'☕',u:'כוס', s:1, qty:1,abs:true,tags:['שתייה','קפה']},
+  {n:'קפה עם חלב',          c:50, p:2,  carb:5,f:1.5, e:'☕',u:'כוס', s:1, qty:1,abs:true,tags:['שתייה','קפה']},
+  {n:'מיץ תפוזים טבעי',    c:112,p:1.7,carb:26,f:0.5,e:'🍊',u:'כוס', s:1, qty:1,abs:true,tags:['שתייה']},
+];
+const ACTS=[
+  {n:'הליכה רגילה',met:3.5,e:'🚶'},{n:'הליכה מהירה',met:5,e:'🚶'},
+  {n:'ריצה קלה',met:7,e:'🏃'},{n:'ריצה מהירה',met:10,e:'🏃'},
+  {n:'אופניים',met:6,e:'🚴'},{n:'שחייה',met:7,e:'🏊'},
+  {n:'כדורסל',met:6.5,e:'🏀'},{n:'כדורגל',met:7,e:'⚽'},
+  {n:'כושר כללי',met:5,e:'💪'},{n:'יוגה',met:2.5,e:'🧘'},
+  {n:'הרמת משקולות',met:5,e:'🏋️'},{n:'HIIT',met:9,e:'⚡'},{n:'אימון פונקציונלי',met:6.5,e:'🤸'},
+];
+
+let S={log:[],acts:[],goals:{cal:2000,pro:120,carb:250,fat:65},
+  profile:{name:'',age:'',gender:'male',height:'',weight:'',activity:'1.55',goal:'0'},
+  history:{}};
+try{const s=localStorage.getItem('nutri_mob');if(s){const p=JSON.parse(s);S=Object.assign(S,p);if(!S.history)S.history={};}}catch(e){}
+
+function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+function archiveToday(){
+  const key=todayKey();
+  if(S.log.length||S.acts.length){
+    const t=totals();
+    S.history[key]={cal:Math.round(t.cal),pro:Math.round(t.pro),carb:Math.round(t.carb),fat:Math.round(t.fat),burned:Math.round(t.burned),items:S.log.length+S.acts.length};
+  }
+}
+
+function save(){
+  archiveToday();
+  try{localStorage.setItem('nutri_mob',JSON.stringify(S));}catch(e){}
+}
+
+let _activeMet=5;
+
+// ── DATE ──
+function setDate(){
+  const d=new Date();
+  const days=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const months=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  document.getElementById('header-date').textContent=`יום ${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+// ── TOTALS ──
+function totals(){
+  const t={cal:0,pro:0,carb:0,fat:0,burned:0};
+  S.log.forEach(i=>{t.cal+=i.cal;t.pro+=i.pro;t.carb+=i.carb;t.fat+=i.fat;});
+  S.acts.forEach(i=>{t.burned+=i.cal;});
+  return t;
+}
+function pct(v,g){return g?Math.min(100,Math.round(v/g*100)):0;}
+
+// ── RENDER TODAY ──
+function renderToday(){
+  const t=totals(),g=S.goals;
+  const net=t.cal,rem=g.cal-net+t.burned;
+  // ring
+  const r=45,circ=2*Math.PI*r;
+  const p=Math.min(1,net/g.cal);
+  document.getElementById('cal-ring').style.strokeDashoffset=circ-(circ*p);
+  document.getElementById('ring-cal').textContent=Math.round(net);
+  document.getElementById('rs-pro').textContent=Math.round(t.pro)+'g';
+  document.getElementById('rs-carb').textContent=Math.round(t.carb)+'g';
+  document.getElementById('rs-fat').textContent=Math.round(t.fat)+'g';
+  const remEl=document.getElementById('rs-rem');
+  remEl.textContent=(rem>=0?'':'−')+Math.round(Math.abs(rem))+' קק"ל';
+  remEl.style.color=rem>=0?'var(--accent2)':'var(--danger)';
+  document.getElementById('bar-pro').style.width=pct(t.pro,g.pro)+'%';
+  document.getElementById('bar-carb').style.width=pct(t.carb,g.carb)+'%';
+  document.getElementById('bar-fat').style.width=pct(t.fat,g.fat)+'%';
+  // food log
+  renderFoodLog();
+  renderActLog();
+}
+
+function renderFoodLog(){
+  const el=document.getElementById('food-log-body');
+  if(!S.log.length){el.innerHTML='<div class="empty-state">לחץ + להוספת ארוחה</div>';return;}
+  const meals=['בוקר','ביניים','צהריים','אחה"צ','ערב'];
+  const colors=['var(--carb-color)','var(--accent)','var(--pro-color)','var(--fat-color)','var(--cal-color)'];
+  let html='';
+  meals.forEach((m,mi)=>{
+    const items=S.log.filter(i=>i.meal===m);
+    if(!items.length)return;
+    html+=`<div class="meal-group-lbl">${m}</div>`;
+    items.forEach(item=>{
+      const gi=S.log.indexOf(item);
+      html+=`<div class="log-item">
+        <div class="log-dot" style="background:${colors[mi]}"></div>
+        <div class="log-info"><div class="log-name">${item.name}</div>
+        <div class="log-macros">ח:${Math.round(item.pro)}g פ:${Math.round(item.carb)}g ש:${Math.round(item.fat)}g</div></div>
+        <div class="log-cal">${Math.round(item.cal)}</div>
+        <button class="log-del" onclick="removeFood(${gi})">×</button>
+      </div>`;
+    });
+  });
+  el.innerHTML=html;
+}
+
+function renderActLog(){
+  const el=document.getElementById('activity-log-body');
+  if(!S.acts.length){el.innerHTML='<div class="empty-state">לחץ + להוספת פעילות</div>';return;}
+  el.innerHTML=S.acts.map((a,i)=>{
+    const found=ACTS.find(x=>x.n===a.name);
+    const e=found?found.e:'🏃';
+    return`<div class="act-item">
+      <div class="act-icon">${e}</div>
+      <div class="act-info"><div class="act-name">${a.name}</div><div class="act-min">${a.min} דקות</div></div>
+      <div class="act-neg">−${Math.round(a.cal)}</div>
+      <button class="log-del" onclick="removeAct(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function removeFood(i){S.log.splice(i,1);save();renderToday();}
+function removeAct(i){S.acts.splice(i,1);save();renderToday();}
+
+// ── FOOD SHEET ──
+function suggestFood(){
+  const q=document.getElementById('food-name').value.toLowerCase();
+  const el=document.getElementById('food-suggest');
+  if(!q){el.style.display='none';hideClarify();return;}
+  // חיפוש לפי שם ולפי tags
+  const res=FOODS.filter(f=>{
+    if(f.n.toLowerCase().includes(q))return true;
+    if(f.tags&&f.tags.some(t=>t.includes(q)))return true;
+    return false;
+  }).slice(0,8);
+  if(!res.length){el.style.display='none';return;}
+  // בדוק אם יש קבוצת הבהרה — tags משותפים
+  const tagMatch=res.filter(f=>f.tags&&f.tags.some(t=>t.includes(q)));
+  if(tagMatch.length>=2&&tagMatch.every(f=>f.tags&&f.tags.some(t=>t===q||t.includes(q)))){
+    el.style.display='none';
+    showClarify(tagMatch,q);
+    return;
+  }
+  hideClarify();
+  el.innerHTML=res.map(f=>{
+    const factor=(f.s||1)/100;
+    const calPer=f.abs?f.c:Math.round(f.c*factor*(f.qty||1));
+    const unitStr=f.qty&&f.qty!==1?`${f.qty} ${f.u||'גרם'}`:(f.u||'100g');
+    return `<div class="suggest-item" onclick='fillFood(${JSON.stringify(f)})'>
+      <div>${f.e} ${f.n}</div>
+      <div class="suggest-sub">${calPer} קק"ל · ${unitStr}</div>
+    </div>`;
+  }).join('');
+  el.style.display='block';
+}
+
+function showClarify(options,q){
+  const panel=document.getElementById('clarify-panel');
+  const optDiv=document.getElementById('clarify-options');
+  panel.style.display='block';
+  optDiv.innerHTML=options.map(f=>{
+    const factor=(f.s||1)/100;
+    const calPer=f.abs?f.c:Math.round(f.c*factor*(f.qty||1));
+    const unitStr=`${f.qty||1} ${f.u||'גרם'}`;
+    return `<div class="clarify-option" onclick='fillFood(${JSON.stringify(f)});hideClarify()'>
+      <span style="font-size:20px">${f.e}</span>
+      <div class="clarify-option-name">${f.n}</div>
+      <div class="clarify-option-cal">${calPer} קק"ל<br><span style="font-size:10px">${unitStr}</span></div>
+    </div>`;
+  }).join('');
+}
+function hideClarify(){
+  document.getElementById('clarify-panel').style.display='none';
+}
+function fillFood(f){
+  document.getElementById('food-name').value=f.n;
+  document.getElementById('food-qty').value=f.qty||1;
+  document.getElementById('food-unit-lbl').textContent=f.u||'גרם';
+  document.getElementById('food-unit-lbl').dataset.u=f.u||'גרם';
+  document.getElementById('food-unit-lbl').dataset.s=f.s||1;
+  document.getElementById('food-unit-lbl').dataset.abs=f.abs?'1':'0';
+  // חישוב ערכים ל-1 יחידה
+  const factor=(f.s||1)/100;
+  document.getElementById('f-cal').value=f.abs?f.c:Math.round(f.c*factor*10)/10;
+  document.getElementById('f-pro').value=f.abs?f.p:Math.round(f.p*factor*10)/10;
+  document.getElementById('f-carb').value=f.abs?f.carb:Math.round(f.carb*factor*10)/10;
+  document.getElementById('f-fat').value=f.abs?f.f:Math.round(f.f*factor*10)/10;
+  document.getElementById('food-suggest').style.display='none';
+  document.getElementById('food-name').blur();
+}
+function addFood(){
+  const name=document.getElementById('food-name').value.trim();
+  const qty=parseFloat(document.getElementById('food-qty').value)||1;
+  const cal=parseFloat(document.getElementById('f-cal').value)||0;
+  const pro=parseFloat(document.getElementById('f-pro').value)||0;
+  const carb=parseFloat(document.getElementById('f-carb').value)||0;
+  const fat=parseFloat(document.getElementById('f-fat').value)||0;
+  const meal=document.getElementById('food-meal').value;
+  const unitLbl=document.getElementById('food-unit-lbl');
+  const u=unitLbl?unitLbl.dataset.u||'גרם':'גרם';
+  const isAbs=unitLbl&&unitLbl.dataset.abs==='1';
+  if(!name||!cal)return;
+  // אם abs — הערכים כבר מוחלטים ל-1 יחידה, פשוט כפול qty
+  // אם לא abs — cal/pro/carb/fat הם ל-1 יחידה, כפול qty
+  const dispName=qty===1?`${name} (${qty} ${u})`:`${name} (${qty} ${u})`;
+  S.log.push({name:dispName,cal:Math.round(cal*qty*10)/10,pro:Math.round(pro*qty*10)/10,carb:Math.round(carb*qty*10)/10,fat:Math.round(fat*qty*10)/10,meal});
+  save();closeSheet();renderToday();
+  document.getElementById('food-name').value='';
+  document.getElementById('food-qty').value='1';
+  if(unitLbl){unitLbl.textContent='יחידות';unitLbl.dataset.u='גרם';unitLbl.dataset.abs='0';}
+  ['f-cal','f-pro','f-carb','f-fat'].forEach(id=>document.getElementById(id).value='');
+}
+
+// ── ACTIVITY SHEET ──
+function suggestAct(){
+  const q=document.getElementById('act-name').value.toLowerCase();
+  const el=document.getElementById('act-suggest');
+  if(!q){el.style.display='none';return;}
+  const res=ACTS.filter(a=>a.n.toLowerCase().includes(q)).slice(0,5);
+  if(!res.length){el.style.display='none';return;}
+  el.innerHTML=res.map(a=>`<div class="suggest-item" onclick="fillAct('${a.n}',${a.met})">${a.e} ${a.n}</div>`).join('');
+  el.style.display='block';
+}
+function fillAct(n,met){
+  document.getElementById('act-name').value=n;
+  document.getElementById('act-suggest').style.display='none';
+  _activeMet=met;calcActCal();
+}
+function calcActCal(){
+  const min=parseFloat(document.getElementById('act-min').value)||30;
+  const mult=parseFloat(document.getElementById('act-intensity').value)||1;
+  const w=S.profile.weight||70;
+  document.getElementById('act-cal').value=Math.round(_activeMet*mult*w*(min/60));
+}
+function addActivity(){
+  const name=document.getElementById('act-name').value.trim();
+  const min=parseFloat(document.getElementById('act-min').value)||30;
+  const cal=parseFloat(document.getElementById('act-cal').value)||0;
+  if(!name)return;
+  S.acts.push({name,min,cal});save();closeSheet();renderToday();
+  document.getElementById('act-name').value='';
+}
+
+// ── GOALS ──
+function renderGoalProgress(){
+  const t=totals(),g=S.goals;
+  const items=[
+    {l:'קלוריות',v:Math.round(t.cal),g:g.cal,c:'var(--cal-color)'},
+    {l:'חלבון',v:Math.round(t.pro),g:g.pro,c:'var(--pro-color)',u:'g'},
+    {l:'פחמימות',v:Math.round(t.carb),g:g.carb,c:'var(--carb-color)',u:'g'},
+    {l:'שומן',v:Math.round(t.fat),g:g.fat,c:'var(--fat-color)',u:'g'},
+  ];
+  document.getElementById('goal-progress-list').innerHTML=items.map(it=>`
+    <div class="goal-item">
+      <div class="goal-color" style="background:${it.c}"></div>
+      <span class="goal-lbl">${it.l}</span>
+      <div class="goal-bar-wrap"><div class="mini-bar"><div class="mini-bar-fill" style="width:${pct(it.v,it.g)}%;background:${it.c}"></div></div></div>
+      <span class="goal-pct" style="color:${it.c}">${it.v}/${it.g}${it.u||''}</span>
+    </div>`).join('');
+}
+function saveGoals(){
+  S.goals={cal:+document.getElementById('g-cal').value||2000,pro:+document.getElementById('g-pro').value||120,
+    carb:+document.getElementById('g-carb').value||250,fat:+document.getElementById('g-fat').value||65};
+  save();renderToday();renderGoalProgress();
+}
+function autoGoals(){
+  const tdee=calcTDEE();if(!tdee)return;
+  const p=S.profile;
+  const target=tdee+parseInt(p.goal||0);
+  const pro=Math.round((+p.weight||70)*1.8);
+  const fat=Math.round(target*0.25/9);
+  const carb=Math.max(0,Math.round((target-pro*4-fat*9)/4));
+  S.goals={cal:target,pro,carb,fat};save();
+  document.getElementById('g-cal').value=target;
+  document.getElementById('g-pro').value=pro;
+  document.getElementById('g-carb').value=carb;
+  document.getElementById('g-fat').value=fat;
+  document.getElementById('auto-badge').style.display='inline-flex';
+  renderToday();renderGoalProgress();
+}
+
+// ── PROFILE ──
+function calcBMR(){
+  const p=S.profile;
+  if(!p.weight||!p.height||!p.age)return null;
+  return p.gender==='male'?10*p.weight+6.25*p.height-5*p.age+5:10*p.weight+6.25*p.height-5*p.age-161;
+}
+function calcTDEE(){const b=calcBMR();return b?Math.round(b*(+S.profile.activity||1.55)):null;}
+function calcBMI(){const p=S.profile;if(!p.weight||!p.height)return null;return +(p.weight/Math.pow(p.height/100,2)).toFixed(1);}
+function bmiLabel(b){if(b<18.5)return'תת משקל';if(b<25)return'תקין ✓';if(b<30)return'עודף';return'השמנה';}
+
+function saveProfile(){
+  S.profile={
+    name:document.getElementById('p-name').value.trim(),
+    age:+document.getElementById('p-age').value||0,
+    gender:document.getElementById('p-gender').value,
+    height:+document.getElementById('p-height').value||0,
+    weight:+document.getElementById('p-weight').value||0,
+    activity:document.getElementById('p-activity').value,
+    goal:document.getElementById('p-goal').value,
+  };
+  save();autoGoals();renderProfileHero();
+  const av=document.getElementById('header-avatar');
+  av.textContent=S.profile.name?S.profile.name[0].toUpperCase():'?';
+}
+function renderProfileHero(){
+  const p=S.profile;
+  if(!p.name&&!p.weight)return;
+  document.getElementById('profile-hero-wrap').style.display='';
+  const init=p.name?p.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2):'?';
+  document.getElementById('prof-initials').textContent=init;
+  document.getElementById('header-avatar').textContent=init;
+  document.getElementById('prof-name-display').textContent=p.name||'משתמש';
+  document.getElementById('prof-sub').textContent=[p.age?p.age+' שנים':'',p.gender==='male'?'זכר':'נקבה',p.height?p.height+'ס"מ':''].filter(Boolean).join(' · ');
+  const b=calcBMI(),bmr=calcBMR(),tdee=calcTDEE();
+  document.getElementById('kpi-bmi').textContent=b||'—';
+  document.getElementById('kpi-bmr').textContent=bmr?Math.round(bmr):'—';
+  document.getElementById('kpi-tdee').textContent=tdee||'—';
+  const goalNames={'-500':'ירידה במשקל','-250':'ירידה מתונה','0':'שמירה','250':'עלייה מתונה','500':'עלייה במסה'};
+  const actNames={'1.2':'יושבני','1.375':'קלה','1.55':'בינונית','1.725':'גבוהה','1.9':'אינטנסיבית'};
+  document.getElementById('prof-settings-list').innerHTML=[
+    ['BMI',b?`${b} — ${bmiLabel(b)}`:'—'],
+    ['משקל יעד',goalNames[p.goal]||'—'],
+    ['פעילות כללית',actNames[p.activity]||'—'],
+    ['יעד קלוריות',S.goals.cal+' קק"ל'],
+  ].map(([l,v])=>`<div class="settings-item"><span class="settings-lbl">${l}</span><span class="settings-val">${v}</span></div>`).join('');
+}
+
+// ── SHEETS ──
+function openSheet(type){
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('sheet-'+type).classList.add('open');
+  if(type==='food'){
+    document.getElementById('food-pills').innerHTML=FOODS.slice(0,12).map(f=>
+      `<span class="pill" onclick='fillFood(${JSON.stringify(f)})'>${f.e} ${f.n}</span>`
+    ).join('');
+  }
+  if(type==='activity'){
+    _activeMet=5;
+    document.getElementById('act-pills').innerHTML=ACTS.slice(0,8).map(a=>
+      `<span class="pill" onclick="fillAct('${a.n}',${a.met})">${a.e} ${a.n}</span>`
+    ).join('');
+    calcActCal();
+  }
+}
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('open');
+  document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('open'));
+  document.getElementById('food-suggest').style.display='none';
+  document.getElementById('act-suggest').style.display='none';
+}
+
+// ── PAGES ──
+let _statsPeriod=7;
+function switchPage(p){
+  ['today','stats','goals','profile'].forEach(id=>{
+    document.getElementById('page-'+id).classList.toggle('active',id===p);
+    document.getElementById('nav-'+id)?.classList.toggle('active',id===p);
+  });
+  document.getElementById('scroll-area').scrollTop=0;
+  if(p==='today')renderToday();
+  if(p==='stats')renderStats(_statsPeriod);
+  if(p==='goals'){renderGoalProgress();document.getElementById('g-cal').value=S.goals.cal;document.getElementById('g-pro').value=S.goals.pro;document.getElementById('g-carb').value=S.goals.carb;document.getElementById('g-fat').value=S.goals.fat;if(S.profile.weight)document.getElementById('btn-auto').style.display='';}
+  if(p==='profile'){renderProfileHero();document.getElementById('p-name').value=S.profile.name||'';document.getElementById('p-age').value=S.profile.age||'';document.getElementById('p-gender').value=S.profile.gender||'male';document.getElementById('p-height').value=S.profile.height||'';document.getElementById('p-weight').value=S.profile.weight||'';document.getElementById('p-activity').value=S.profile.activity||'1.55';document.getElementById('p-goal').value=S.profile.goal||'0';}
+}
+
+function setPeriod(n){
+  _statsPeriod=n;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.toggle('active',+b.dataset.days===n));
+  renderStats(n);
+}
+
+function getHistoryDays(n){
+  const days=[];
+  for(let i=n-1;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const dayName=['א','ב','ג','ד','ה','ו','ש'][d.getDay()];
+    const isToday=i===0;
+    let entry=S.history[key]||null;
+    if(isToday&&(S.log.length||S.acts.length)){const t=totals();entry={cal:Math.round(t.cal),pro:Math.round(t.pro),carb:Math.round(t.carb),fat:Math.round(t.fat),burned:Math.round(t.burned)};}
+    days.push({key,label:dayName,date:d,entry,isToday});
+  }
+  return days;
+}
+
+function renderStats(n){
+  const days=getHistoryDays(n);
+  const withData=days.filter(d=>d.entry);
+  const avgCal=withData.length?Math.round(withData.reduce((s,d)=>s+d.entry.cal,0)/withData.length):0;
+  const avgPro=withData.length?Math.round(withData.reduce((s,d)=>s+d.entry.pro,0)/withData.length):0;
+  const avgBurned=withData.length?Math.round(withData.reduce((s,d)=>s+(d.entry.burned||0),0)/withData.length):0;
+  const goal=S.goals.cal||2000;
+  const daysOnTarget=withData.filter(d=>Math.abs(d.entry.cal-goal)<goal*0.1).length;
+  const streak=calcStreak();
+  const maxCal=Math.max(...days.map(d=>d.entry?d.entry.cal:0),goal,1);
+
+  // bar chart days
+  const bars=days.map(d=>{
+    const h=d.entry?Math.round((d.entry.cal/maxCal)*90):0;
+    const over=d.entry&&d.entry.cal>goal*1.1;
+    const color=over?'var(--danger)':d.isToday?'var(--accent)':'var(--accent)88';
+    return `<div class="bar-col">
+      <div class="bar-col-val">${d.entry?d.entry.cal:''}</div>
+      <div class="bar-col-bar" style="height:${h}px;background:${color}"></div>
+      <div class="bar-col-lbl">${d.label}</div>
+    </div>`;
+  }).join('');
+
+  // history list
+  const histItems=[...days].reverse().filter(d=>d.entry).slice(0,10).map(d=>{
+    const pct=Math.min(100,Math.round(d.entry.cal/goal*100));
+    const dd=d.date;
+    const months=['ינו','פבר','מרץ','אפר','מאי','יוני','יולי','אוג','ספט','אוק','נוב','דצ'];
+    const lbl=d.isToday?'היום':`${dd.getDate()} ${months[dd.getMonth()]}`;
+    const over=d.entry.cal>goal*1.1;
+    return `<div class="history-item">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span class="history-date">${lbl}</span>
+        <span style="font-size:11px;color:${over?'var(--danger)':'var(--accent2)'};font-weight:700">${over?'⬆ חריגה':'✓ ביעד'}</span>
+      </div>
+      <div class="history-bars">
+        <div class="history-bar-wrap">
+          <div class="history-bar-lbl">קק"ל ${d.entry.cal} / ${goal}</div>
+          <div class="history-bar-track"><div class="history-bar-fill" style="width:${pct}%;background:${over?'var(--danger)':'var(--accent)'}"></div></div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);flex-shrink:0">
+          <span style="color:var(--pro-color)">ח:${d.entry.pro}g</span>
+          <span style="color:var(--carb-color)">פ:${d.entry.carb}g</span>
+          <span style="color:var(--fat-color)">ש:${d.entry.fat}g</span>
+          ${d.entry.burned?`<span style="color:var(--accent2)">🔥${d.entry.burned}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('stats-content').innerHTML=`
+    <div class="stats-period">
+      <button class="period-btn ${n===7?'active':''}" data-days="7" onclick="setPeriod(7)">7 ימים</button>
+      <button class="period-btn ${n===14?'active':''}" data-days="14" onclick="setPeriod(14)">14 ימים</button>
+      <button class="period-btn ${n===30?'active':''}" data-days="30" onclick="setPeriod(30)">30 ימים</button>
+    </div>
+
+    <div class="streak-row">
+      <div class="streak-card"><div class="streak-val">${streak}</div><div class="streak-lbl">ימי רצף 🔥</div></div>
+      <div class="streak-card"><div class="streak-val">${withData.length}</div><div class="streak-lbl">ימים מתועדים</div></div>
+      <div class="streak-card"><div class="streak-val">${daysOnTarget}</div><div class="streak-lbl">ביעד</div></div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">קלוריות יומיות</div>
+      <div style="position:relative">
+        <div class="bar-chart">${bars}</div>
+        <div style="position:absolute;top:0;right:0;left:0;height:1px;background:var(--border);margin-top:${Math.round((1-goal/maxCal)*90)}px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:center">קו יעד: ${goal} קק"ל</div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">ממוצעים ל-${n} ימים</div>
+      ${withData.length?`
+      <div class="avg-row"><span style="color:var(--muted)">ממוצע קלוריות יומי</span><span style="font-weight:700;color:var(--cal-color)">${avgCal} קק"ל</span></div>
+      <div class="avg-row"><span style="color:var(--muted)">ממוצע חלבון</span><span style="font-weight:700;color:var(--pro-color)">${avgPro}g</span></div>
+      <div class="avg-row"><span style="color:var(--muted)">ממוצע שריפה בפעילות</span><span style="font-weight:700;color:var(--accent2)">${avgBurned} קק"ל</span></div>
+      <div class="avg-row"><span style="color:var(--muted)">גירעון/עודף ממוצע</span><span style="font-weight:700;color:${avgCal<goal?'var(--accent2)':'var(--danger)'}">${avgCal<goal?'−':'+'} ${Math.abs(goal-avgCal)} קק"ל</span></div>
+      `:'<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">אין מספיק נתונים עדיין</div>'}
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">היסטוריה</div>
+      ${histItems||'<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">התחל לתעד כדי לראות נתונים</div>'}
+    </div>`;
+}
+
+function calcStreak(){
+  let streak=0;
+  const today=todayKey();
+  const hasToday=S.log.length>0||(S.history[today]&&S.history[today].cal>0);
+  if(hasToday)streak=1;
+  for(let i=1;i<365;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(S.history[key]&&S.history[key].cal>0)streak++;
+    else break;
+  }
+  return streak;
+}
+
+setDate();
+renderToday();
+if(S.profile.name||S.profile.weight){renderProfileHero();document.getElementById('header-avatar').textContent=S.profile.name?S.profile.name[0].toUpperCase():'?';}
+</script>
+</body>
+</html>
